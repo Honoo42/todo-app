@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { Container, Button, Checkbox, FormControlLabel, TextField } from '@material-ui/core';
 import { makeStyles } from '@material-ui/core/styles';
-import storage from '../../../utils';
+/* import storage from '../../../utils'; */ // removed for upgrade to API/MongoDB layer
 
 interface Todo {
     id: number;
@@ -31,73 +31,108 @@ const useStyles = makeStyles((theme) => ({
   }));
   
 
-const TodoList: React.FunctionComponent = () => {
+const TodoList = (): JSX.Element => {
     const classes = useStyles();
-    const {loadData, saveData} = storage;
     const [todos, setTodos] = useState<Todo[]>([]);
     const [newTodoText, setNewTodoText] = useState('');
 
-    const handleAddTodo = useCallback(() => {
-        //const todoText = prompt('Enter a new todo:'); // replace prompt with API Put
-        if (newTodoText) {
-        const newTodo: Todo = {
-            id: Date.now(),
-            text: newTodoText,
-            completed: false,
-        };
-        setTodos([...todos, newTodo]);
-        saveData('todos', [...todos, newTodo]);
-        // clear out todo text
-        setNewTodoText('')
-        }
-    },[newTodoText]);
-
-  const handleToggleTodo = (id: number) => {
-    const updatedTodos = todos.map((todo) =>
-      todo.id === id ? { ...todo, completed: !todo.completed } : todo
-    );
-    setTodos(updatedTodos);
-    saveData('todos', updatedTodos);
-  };
-
-  const handleDeleteTodo = (id: number) => {
-    const updatedTodos = todos.filter((todo) => todo.id !== id);
-    setTodos(updatedTodos);
-    saveData('todos', updatedTodos);
-  };
-
-  useEffect(() => {
-    // Fetch todos from backend or initialize with static data
     const fetchTodos = async () => {
-      try {
-        const response =  loadData('todos');  // Replace with your actual API endpoint
-        console.log('show data', response)
-
-        setTodos(response);
-      } catch (error) {
-        console.log('Error fetching todos:', error);
-      }
+        try {
+        const response = await fetch('http://localhost:5000/api/todos');
+        const data = await response.json();
+        setTodos(data.todos);
+        } catch (error) {
+        console.error('Error fetching todos:', error);
+        }
     };
 
-    fetchTodos();
-  }, []);
+    const addTodo = async (text: string) => {
+        try {
+        const response = await fetch('http://localhost:5000/api/todos', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ text }),
+        });
+        const data = await response.json();
+        setTodos((prevTodos) => {
+                if (prevTodos) {
+                    return [...prevTodos, data];
+                } else {
+                    return [data];
+                }
+        });
+        setNewTodoText('');
+        } catch (error) {
+        console.error('Error adding todo:', error);
+        }
+    };
+
+    const toggleTodo = async (id: number) => {
+        try {
+        const response = await fetch(`http://localhost:5000/api/todos/${id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ completed: true }), // Assuming you want to toggle it to true
+        });
+        const data = await response.json();
+        setTodos((prevTodos) =>
+            prevTodos?.map((todo) => (todo?.id === id ? { ...todo, completed: data.todo?.completed ?? true } : todo))
+        );
+        } catch (error) {
+        console.error('Error updating todo:', error);
+        }
+    };
+
+    const deleteTodo = async (id: number) => {
+        try {
+        const response = await fetch(`http://localhost:5000/api/todos/${id}`, {
+            method: 'DELETE',
+        });
+        if (response.status === 204) {
+            setTodos((prevTodos) => prevTodos?.filter((todo) => todo?.id !== id));
+        } else {
+            console.error('Error deleting todo:', response.status);
+        }
+        } catch (error) {
+        console.error('Error deleting todo:', error);
+        }
+    };
+
+    const handleAddTodo = useCallback(() => {
+        addTodo(newTodoText);
+    }, [newTodoText]);
+
+    const handleToggleTodo = useCallback((id: number) => {
+        toggleTodo(id);
+    }, []);
+
+    const handleDeleteTodo = useCallback((id: number) => {
+        deleteTodo(id);
+    }, []);
+
+    useEffect(() => {
+        fetchTodos();
+      }, []);
 
   return (
     <Container className={classes.container}>
       <h1>Todo App</h1>
             <ul className={classes.todoList}>
-              {todos.map((todo) => (
+                {!todos && (
+                    <h2>Please add a todo item</h2>
+                )}
+              {todos?.map((todo) => (
                 <li key={todo.id} className={classes.todoItem}>
                   <FormControlLabel
                     control={
                     <Checkbox
-                        checked={todo.completed}
-                        onChange={() => handleToggleTodo(todo.id)}
+                        checked={todo.completed ?? false}
+                        onChange={() => handleToggleTodo(todo?.id)}
                         />}
                     label={"New Element"}
                     />
                   <span className={classes.todoText}>{todo.text}</span>
-                  <Button variant="outlined" onClick={() => handleDeleteTodo(todo.id)}>
+                  <Button variant="outlined" onClick={() => handleDeleteTodo(todo?.id)}>
                     Delete
                   </Button>
                 </li>
