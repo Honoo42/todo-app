@@ -39,8 +39,13 @@ Instead, it will copy all the configuration files and the transitive dependencie
 
 You don’t have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn’t feel obligated to use this feature. However we understand that this tool wouldn’t be useful if you couldn’t customize it when you are ready for it.
 
-## Learn More
+## TODO App
+This is a demonstation of creating a Todo application. The tech stack used is:
+Frontend : React with TypeScript and materialUI Modules for CSS styling
+Backend: Express.js
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
-
-To learn React, check out the [React documentation](https://reactjs.org/).
+## Running the Back end
+1. Install dependencies by running `yarn`
+2. navigate to the backend package (`cd backend`)
+3. Run `npx tsc` to compile the package into the dist folder
+4. Run `node backend/dist/index.js` from the root of the project
